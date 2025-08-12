@@ -3,9 +3,7 @@ import numpy as np
 import requests
 from io import StringIO
 
-# ----------------------------
-# STEP 1: Load 2022–2024 Excel Data
-# ----------------------------
+# Loading Excel data
 
 file_path = "C:/Users/Harper/Downloads/NFL_QB_Stats.xlsx"
 seasons = ["2022", "2023", "2024"]
@@ -18,9 +16,7 @@ for season in seasons:
 
 historical = pd.concat(dfs, ignore_index=True)
 
-# ----------------------------
-# STEP 2: Normalize stats per game
-# ----------------------------
+# Stat normalization
 
 per_game_normalize = ["Total Epa", "Hrry", "Blitz", "Poor", "Drop"]
 for col in per_game_normalize:
@@ -37,9 +33,7 @@ advanced_cols = [
 advanced_stats_avg = historical.groupby("Player Name")[advanced_cols].mean().reset_index()
 advanced_stats_avg = advanced_stats_avg.rename(columns={col: f"{col}_adv" for col in advanced_cols})
 
-# ----------------------------
-# STEP 3: Calculate expected vs actual fantasy score historically
-# ----------------------------
+# Formula for model fantasy score
 
 def calculate_custom_fantasy_score(df):
     return (
@@ -67,9 +61,7 @@ historical["diff"] = historical["expected_fantasy"] - historical["fantasy_actual
 qb_performance = historical.groupby("Player Name")[["diff"]].mean().reset_index()
 qb_performance.columns = ["Player Name", "avg_diff_per_season"]
 
-# ----------------------------
-# STEP 4: Get 2025 Projections from FantasyPros
-# ----------------------------
+# Fetch Fantasy Pros API
 
 url = "https://www.fantasypros.com/nfl/projections/qb.php?week=draft"
 html = requests.get(url).text
@@ -94,16 +86,12 @@ proj = df_proj.rename(columns={
 for col in ["Pass Yards", "Pass Td", "Int", "Rush Yds", "Rush Tds"]:
     proj[col] = pd.to_numeric(proj[col], errors="coerce")
 
-# ----------------------------
-# STEP 5: Merge advanced stats into projections
-# ----------------------------
+# Merging stats together
 
 proj = proj.merge(advanced_stats_avg, on="Player Name", how="left")
 proj[[f"{col}_adv" for col in advanced_cols]] = proj[[f"{col}_adv" for col in advanced_cols]].fillna(0)
 
-# ----------------------------
-# STEP 6: Calculate custom expected 2025 projection score
-# ----------------------------
+# Fantasy Score Calculator 
 
 def calculate_custom_score_proj(df):
     return (
@@ -126,20 +114,16 @@ def calculate_custom_score_proj(df):
 
 proj["custom_expected_2025"] = calculate_custom_score_proj(proj)
 
-# ----------------------------
-# STEP 7: Adjust using historical over/underperformance
-# ----------------------------
+# Averaging data over the timeframe
 
 proj = proj.merge(qb_performance, on="Player Name", how="left")
 proj["avg_diff_per_season"] = proj["avg_diff_per_season"].fillna(0)
 proj["Adjusted_Custom_2025"] = proj["custom_expected_2025"] + proj["avg_diff_per_season"]
 
-# ----------------------------
-# STEP 8: Export final QB projections for 2025
-# ----------------------------
+# File exporting
 
 final_cols = ["Player Name", "Projected_FPTS", "Adjusted_Custom_2025"]
 proj[final_cols].sort_values("Adjusted_Custom_2025", ascending=False)\
     .to_excel("QB_Projections_2025.xlsx", index=False)
 
-print("✅ Done! File saved: QB_Projections_2025.xlsx")
+print("File saved: QB_Projections_2025.xlsx")
