@@ -10,6 +10,6 @@
 - Provides a framework for adjusting projections based on historical player performance  
 
 **Skills used:**  
-- Python, Pandas, SQL, Power BI, Data Visualization, Statistical Analysis  
+- Python, Pandas, SQL, Data Visualization, Statistical Analysis  
 
 ---
